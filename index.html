@@ -901,8 +901,16 @@
                     } else {
                         const avgHeight = totalHeight / validHeights;
                         const volRuma = largoRuma * avgHeight * largoTrozo;
-                        calculatedVolumes.eucaliptoRuma = volRuma;
-                        resultValue.innerHTML = `<p>${volRuma.toFixed(2)} metros ruma</p>`;
+                        
+                        // Conversion logic - ONLY for 3.50m
+                        if (largoTrozo === 3.50) {
+                            const convertedVol = volRuma * (3.50 / 2.44);
+                            resultValue.innerHTML = `<p>${volRuma.toFixed(2)} mr (a 3.50m)</p><p class="text-lg opacity-80 mt-1">Equivale a ${convertedVol.toFixed(2)} mr (a 2.44m)</p>`;
+                            calculatedVolumes.eucaliptoRuma = convertedVol; // Store standardized value for value calculator
+                        } else {
+                            resultValue.innerHTML = `<p>${volRuma.toFixed(2)} metros ruma</p>`;
+                            calculatedVolumes.eucaliptoRuma = volRuma;
+                        }
                     }
                 } else { // pino
                     resultTitle.textContent = 'Volumen Sólido Total (Pino)';
@@ -1024,21 +1032,18 @@
                 const coordsDisplay = plotCard.querySelector('.coords-display');
                 coordsDisplay.textContent = 'Obteniendo...';
                 coordsDisplay.classList.remove('hidden');
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
+                
+                // Use the new robust permission handler
+                requestDevicePermissions()
+                    .then(position => {
                         const { latitude, longitude } = position.coords;
                         plotCard.dataset.coords = `${latitude},${longitude}`;
                         coordsDisplay.textContent = `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`;
                         saveSession();
-                    },
-                    (error) => { 
-                        let errorMsg = 'Error al obtener ubicación.';
-                        if (error.code === 1) errorMsg = 'Permiso de ubicación denegado.';
-                        if (error.code === 2) errorMsg = 'Ubicación no disponible.';
-                        coordsDisplay.textContent = errorMsg;
-                     },
-                    { enableHighAccuracy: true }
-                );
+                    })
+                    .catch(error => {
+                        coordsDisplay.textContent = error.message;
+                    });
             }
         });
         
@@ -1098,40 +1103,46 @@
             sensorsError.textContent = message;
         }
 
+        async function requestDevicePermissions() {
+            // --- Location (GPS) Permission ---
+            if (!("geolocation" in navigator)) {
+                throw new Error("GPS no soportado en este navegador.");
+            }
+            
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
+            });
+
+            // --- Orientation (Compass) Permission for iOS ---
+            if (typeof window.DeviceOrientationEvent !== 'undefined' && typeof window.DeviceOrientationEvent.requestPermission === 'function') {
+                const permissionState = await window.DeviceOrientationEvent.requestPermission();
+                if (permissionState !== 'granted') {
+                   sensorsError.textContent = 'Permiso para brújula denegado. ';
+                }
+            }
+            return position; // Return position object on success
+        }
+
         function startNavigationSensors() {
             sensorsError.textContent = '';
-            
-            // GPS logic must come first to trigger location prompt
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    // On success, initialize map and start watching
+            requestDevicePermissions()
+                .then(position => {
                     initializeMap(position);
                     handlePosition(position);
                     gpsWatchId = navigator.geolocation.watchPosition(handlePosition, handlePositionError, { enableHighAccuracy: true });
-
-                    // Now, ask for orientation permission
-                    if (typeof window.DeviceOrientationEvent !== 'undefined' && typeof window.DeviceOrientationEvent.requestPermission === 'function') {
-                        window.DeviceOrientationEvent.requestPermission()
-                            .then(permissionState => {
-                                if (permissionState === 'granted') {
-                                    window.addEventListener('deviceorientation', handleOrientation);
-                                } else {
-                                    sensorsError.textContent = 'Permiso para brújula denegado. ';
-                                }
-                            }).catch(console.error);
-                    } else if ('DeviceOrientationEvent' in window) {
+                    
+                    if ('DeviceOrientationEvent' in window) {
                         window.addEventListener('deviceorientation', handleOrientation);
                     } else {
-                        sensorsError.textContent += 'Brújula no soportada. ';
+                        sensorsError.textContent += 'Brújula no soportada.';
                     }
-
-                }, handlePositionError, { enableHighAccuracy: true });
-            } else {
-                 sensorsError.textContent += 'GPS no soportado.';
-            }
-
-            sensorsContent.classList.remove('hidden');
-            activateSensorsContainer.classList.add('hidden');
+                    
+                    sensorsContent.classList.remove('hidden');
+                    activateSensorsContainer.classList.add('hidden');
+                })
+                .catch(error => {
+                    handlePositionError(error);
+                });
         }
 
         function stopNavigationSensors() {
