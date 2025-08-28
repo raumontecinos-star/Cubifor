@@ -293,7 +293,7 @@
         <div class="text-center mt-8">
             <p class="text-xs opacity-60">Nota: El volumen comercial (82%) y el factor de ruma (0.65) son estimaciones basadas en estándares de INFOR y la industria forestal chilena.</p>
         </div>
-    </div>
+    </div> <!-- *** THIS IS THE CORRECTED CLOSING DIV *** -->
     
     <!-- Modals -->
     <div id="restore-session-modal" class="modal hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none">
@@ -1007,6 +1007,10 @@
             
             if (activeTab === 'tab-nav') {
                 resultContainer.classList.add('hidden');
+                // *** MAP FIX: Invalidate size when tab becomes visible ***
+                if (map) {
+                    setTimeout(() => map.invalidateSize(), 10);
+                }
             } else {
                 stopNavigationSensors();
                 calculateAndDisplay();
@@ -1108,7 +1112,11 @@
 
         // --- NAVIGATION SENSORS (REFACTORED) ---
         function initializeMap(initialPosition) {
-            if (map) return;
+            if (map) {
+                // If map already exists, just set the view
+                map.setView([initialPosition.coords.latitude, initialPosition.coords.longitude], 16);
+                return;
+            }
             const { latitude, longitude, accuracy } = initialPosition.coords;
             map = L.map('map').setView([latitude, longitude], 16);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1123,6 +1131,9 @@
                 fillOpacity: 0.15,
                 weight: 2
             }).addTo(map);
+            
+            // *** MAP FIX: Invalidate size after a short delay ***
+            setTimeout(() => map.invalidateSize(), 100);
         }
 
         function handleOrientation(event) {
@@ -1142,7 +1153,8 @@
 
             if (map && userMarker && accuracyCircle) {
                 const latLng = [latitude, longitude];
-                map.panTo(latLng);
+                // Do not pan automatically on watch, it's annoying for the user
+                // map.panTo(latLng); 
                 userMarker.setLatLng(latLng);
                 accuracyCircle.setLatLng(latLng);
                 accuracyCircle.setRadius(accuracy);
@@ -1159,7 +1171,7 @@
 
         // *** NUEVA LÓGICA DE PERMISOS ***
         async function activateSensorsAndMap() {
-            sensorsError.textContent = 'Activando sensores...';
+            sensorsError.textContent = 'Solicitando permisos...';
             let orientationGranted = false;
 
             // 1. Solicitar permiso de orientación (Brújula) - Específico para iOS
@@ -1174,7 +1186,7 @@
                     }
                 } catch (error) {
                     console.warn("Error al solicitar permiso de orientación:", error);
-                    sensorsError.textContent = 'No se pudo solicitar permiso para la brújula.';
+                    // No mostrar error al usuario si cancela, solo no funcionará la brújula
                 }
             } else if ('DeviceOrientationEvent' in window) {
                 // Para Android y otros navegadores que no requieren solicitud explícita
@@ -1252,6 +1264,13 @@
             } else {
                 calculateAndDisplay();
             }
+            
+            // *** MAP FIX: Add resize listener ***
+            window.addEventListener('resize', () => {
+                if (map) {
+                    map.invalidateSize();
+                }
+            });
         });
     </script>
 </body>
