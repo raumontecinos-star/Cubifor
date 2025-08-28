@@ -1034,7 +1034,7 @@
                 coordsDisplay.classList.remove('hidden');
                 
                 // Use the new robust permission handler
-                requestDevicePermissions()
+                requestDevicePermissions(false) // false because we don't need compass here
                     .then(position => {
                         const { latitude, longitude } = position.coords;
                         plotCard.dataset.coords = `${latitude},${longitude}`;
@@ -1098,12 +1098,12 @@
         
         function handlePositionError(error) {
             let message = 'Error de GPS. ';
-            if (error.code === 1) message = 'Permiso de ubicación denegado.';
+            if (error.code === 1) message = 'Permiso de ubicación denegado. Revisa los ajustes de Safari.';
             if (error.code === 2) message = 'Ubicación no disponible.';
             sensorsError.textContent = message;
         }
 
-        async function requestDevicePermissions() {
+        async function requestDevicePermissions(requestCompass = true) {
             // --- Location (GPS) Permission ---
             if (!("geolocation" in navigator)) {
                 throw new Error("GPS no soportado en este navegador.");
@@ -1114,7 +1114,7 @@
             });
 
             // --- Orientation (Compass) Permission for iOS ---
-            if (typeof window.DeviceOrientationEvent !== 'undefined' && typeof window.DeviceOrientationEvent.requestPermission === 'function') {
+            if (requestCompass && typeof window.DeviceOrientationEvent !== 'undefined' && typeof window.DeviceOrientationEvent.requestPermission === 'function') {
                 const permissionState = await window.DeviceOrientationEvent.requestPermission();
                 if (permissionState !== 'granted') {
                    sensorsError.textContent = 'Permiso para brújula denegado. ';
@@ -1125,7 +1125,7 @@
 
         function startNavigationSensors() {
             sensorsError.textContent = '';
-            requestDevicePermissions()
+            requestDevicePermissions(true) // true because we need compass here
                 .then(position => {
                     initializeMap(position);
                     handlePosition(position);
