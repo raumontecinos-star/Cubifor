@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CubiFor - Cubicador Forestal</title>
+    <meta name="theme-color" content="#1e293b"/>
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icono para la pantalla de inicio y favicon -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a3e635'%3E%3Cpath d='M12 2.25a.75.75 0 0 1 .75.75v11.563l3.3-1.423a.75.75 0 0 1 .8 1.53l-4.5 1.93a.75.75 0 0 1-.6-.001l-4.5-1.93a.75.75 0 0 1 .8-1.53l3.3 1.423V3a.75.75 0 0 1 .75-.75Z' /%3E%3Cpath d='M19.5 13.5a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1 0-1.5h13.5a.75.75 0 0 1 .75.75Z' /%3E%3Cpath d='M19.5 16.5a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1 0-1.5h13.5a.75.75 0 0 1 .75.75Z' /%3E%3Cpath d='M19.5 19.5a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1 0-1.5h13.5a.75.75 0 0 1 .75-.75Z' /%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a3e635'%3E%3Crect width='24' height='24' rx='4' fill='%231e293b'/%3E%3Cpath d='M12 2.25a.75.75 0 0 1 .75.75v11.563l3.3-1.423a.75.75 0 0 1 .8 1.53l-4.5 1.93a.75.75 0 0 1-.6-.001l-4.5-1.93a.75.75 0 0 1 .8-1.53l3.3 1.423V3a.75.75 0 0 1 .75-.75Z' /%3E%3Cpath d='M19.5 13.5a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1 0-1.5h13.5a.75.75 0 0 1 .75.75Z' /%3E%3Cpath d='M19.5 16.5a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1 0-1.5h13.5a.75.75 0 0 1 .75.75Z' /%3E%3Cpath d='M19.5 19.5a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1 0-1.5h13.5a.75.75 0 0 1 .75.75Z' /%3E%3C/svg%3E">
+    <meta name="apple-mobile-web-app-title" content="CubiFor">
+    <meta name="application-name" content="CubiFor">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Leaflet Map Library -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- CRITICAL CSS FOR LAYOUT --- */
+        .hidden { display: none !important; }
+        .block { display: block; }
+        .flex { display: flex; }
+        .grid { display: grid; }
+        .relative { position: relative; }
+        .absolute { position: absolute; }
+        .fixed { position: fixed; }
+        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+        /* --- END CRITICAL CSS --- */
+
+        :root {
+            --bg-color: rgba(15, 23, 42, 0.8);
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.2);
+            --input-bg: rgba(30, 41, 59, 0.5);
+            --primary-color: #a3e635;
+            --primary-text: #ffffff;
+        }
+        .high-contrast {
+            --bg-color: rgba(255, 255, 255, 0.95);
+            --text-color: #020617;
+            --border-color: rgba(0, 0, 0, 0.3);
+            --input-bg: rgba(226, 232, 240, 0.8);
+            --primary-color: #166534;
+            --primary-text: #ffffff;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-image: url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2560&auto-format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .main-container {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+        .input-field, select {
+            background-color: var(--input-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+        select {
+             -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor' class='w-5 h-5'%3E%3Cpath fill-rule='evenodd' d='M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z' clip-rule='evenodd' /%3E%3C/svg%3E%0A");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+        }
+        .tab-radio:checked + .tab-label {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #4d7c0f; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #65a30d; }
+        #result {
+            border-color: #64748b; /* slate-500 */
+        }
+        .high-contrast #result {
+            border-color: var(--primary-color);
+        }
+        .result-table th, .result-table td { padding: 0.5rem 1rem; text-align: left; }
+        .result-table th { opacity: 0.8; }
+        .result-table td { font-weight: 600; }
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+        #compass-rose {
+            transition: transform 0.5s ease-out;
+        }
+        #map { z-index: 0; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="app-container" class="main-container w-full max-w-2xl backdrop-blur-sm rounded-2xl shadow-2xl p-4 sm:p-6 border transition-colors duration-300 relative">
+        
+        <div class="absolute top-4 right-4 flex items-center space-x-2">
+             <button id="load-project-btn" class="p-2 rounded-full hover:bg-white/10 transition-colors" title="Cargar Proyectos">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+            </button>
+            <button id="save-project-btn" class="p-2 rounded-full hover:bg-white/10 transition-colors" title="Guardar Proyecto">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+            </button>
+            <button id="theme-toggle" class="p-2 rounded-full hover:bg-white/10 transition-colors" title="Cambiar Tema">
+                <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+            </button>
+        </div>
+
+        <div class="text-center mb-8 pt-10">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-12 h-12 mx-auto text-lime-400 mb-2"><path d="M12 2.25a.75.75 0 0 1 .75.75v11.563l3.3-1.423a.75.75 0 0 1 .8 1.53l-4.5 1.93a.75.75 0 0 1-.6-.001l-4.5-1.93a.75.75 0 0 1 .8-1.53l3.3 1.423V3a.75.75 0 0 1 .75-.75Z" /><path d="M19.5 13.5a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1 0-1.5h13.5a.75.75 0 0 1 .75.75Z" /><path d="M19.5 16.5a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1 0-1.5h13.5a.75.75 0 0 1 .75.75Z" /><path d="M19.5 19.5a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1 0-1.5h13.5a.75.75 0 0 1 .75.75Z" /></svg>
+            <h1 class="text-3xl sm:text-4xl font-bold">CubiFor</h1>
+            <p class="text-lg sm:text-xl mt-1 opacity-80">Cubicador Forestal</p>
+            <p class="opacity-60 mt-2 text-sm">Pino y Eucalipto | Regiones de Ñuble y Biobío</p>
+        </div>
+
+        <div class="flex justify-center border-b border-inherit mb-6">
+            <div class="flex flex-wrap justify-center">
+                <input type="radio" id="tab-standing" name="tabs" class="hidden tab-radio" checked>
+                <label for="tab-standing" class="tab-label cursor-pointer px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base border-b-2 border-transparent opacity-70 hover:opacity-100 transition-colors duration-300">Árbol</label>
+                <input type="radio" id="tab-plot" name="tabs" class="hidden tab-radio">
+                <label for="tab-plot" class="tab-label cursor-pointer px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base border-b-2 border-transparent opacity-70 hover:opacity-100 transition-colors duration-300">Bosque</label>
+                <input type="radio" id="tab-ruma" name="tabs" class="hidden tab-radio">
+                <label for="tab-ruma" class="tab-label cursor-pointer px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base border-b-2 border-transparent opacity-70 hover:opacity-100 transition-colors duration-300">Ruma</label>
+                <input type="radio" id="tab-nav" name="tabs" class="hidden tab-radio">
+                <label for="tab-nav" class="tab-label cursor-pointer px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base border-b-2 border-transparent opacity-70 hover:opacity-100 transition-colors duration-300">Navegación</label>
+            </div>
+        </div>
+
+        <div id="calculator-content">
+            <div id="standingContent" class="space-y-6">
+                <p class="text-center opacity-70 text-sm">Calcula el volumen de un árbol individual.</p>
+                <div><label for="species" class="block text-sm font-medium opacity-80 mb-2">Especie</label><select id="species" class="input-field w-full border rounded-md p-3 outline-none transition"><option value="pino">Pino Radiata</option><option value="globulus">Eucalipto Globulus</option></select></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label for="dap" class="block text-sm font-medium opacity-80 mb-2">DAP (cm)</label><input type="number" min="0" id="dap" placeholder="Ej: 42.0" class="input-field w-full border rounded-md p-3 outline-none transition"></div>
+                    <div><label for="height" class="block text-sm font-medium opacity-80 mb-2">Altura Total (m)</label><input type="number" min="0" id="height" placeholder="Ej: 25.0" class="input-field w-full border rounded-md p-3 outline-none transition"></div>
+                </div>
+                <div><label for="standingVolumeType" class="block text-sm font-medium opacity-80 mb-2">Tipo de Volumen</label><select id="standingVolumeType" class="input-field w-full border rounded-md p-3 outline-none transition"><option value="total">Volumen Total (Vcc)</option><option value="commercial">Volumen Comercial (Estimado)</option></select></div>
+                <div><label for="standingMethod" class="block text-sm font-medium opacity-80 mb-2">Método de Cálculo</label><select id="standingMethod" class="input-field w-full border rounded-md p-3 outline-none transition"><option value="equation">Ecuación de Volumen (Recomendado)</option><option value="form_factor">Factor de Forma</option></select></div>
+            </div>
+            
+            <div id="plotContent" class="hidden space-y-6">
+                <p class="text-center opacity-70 text-sm">Estima el volumen total de un bosque a partir de parcelas de muestreo.</p>
+                <div class="bg-black/20 p-4 rounded-lg">
+                    <label for="totalAreaHa" class="block text-sm font-medium opacity-80 mb-2">Superficie Total del Predio (hectáreas)</label>
+                    <input type="number" min="0" id="totalAreaHa" placeholder="Ej: 15.5" class="input-field w-full border rounded-md p-3 outline-none transition">
+                </div>
+                <div id="plotList" class="space-y-4 max-h-96 overflow-y-auto custom-scrollbar pr-2"></div>
+                <button id="addPlotBtn" class="w-full bg-lime-900/50 hover:bg-lime-900/80 font-semibold py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center space-x-2 border border-lime-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg><span>Agregar Parcela de Muestreo</span></button>
+            </div>
+
+            <div id="rumaContent" class="hidden space-y-6">
+                <div><label for="ruma_species" class="block text-sm font-medium opacity-80 mb-2">Especie</label><select id="ruma_species" class="input-field w-full border rounded-md p-3 outline-none transition"><option value="eucalipto">Eucalipto (por Pila)</option><option value="pino">Pino (por Trozo)</option></select></div>
+                <div id="ruma_euca_inputs" class="space-y-6">
+                    <p class="text-center opacity-70 text-sm">Calcula el volumen de una pila de madera (metro ruma).</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div><label for="ruma_largo" class="block text-sm font-medium opacity-80 mb-2">Largo Pila (m)</label><input type="number" min="0" id="ruma_largo" placeholder="Ej: 10.0" class="input-field w-full border rounded-md p-3 outline-none transition"></div>
+                        <div>
+                            <label for="ruma_trozo_select" class="block text-sm font-medium opacity-80 mb-2">Largo Trozo</label>
+                            <select id="ruma_trozo_select" class="input-field w-full border rounded-md p-3 outline-none transition">
+                                <option value="2.44">2.44 m (Pulpable)</option>
+                                <option value="3.50">3.50 m (Pulpable)</option>
+                                <option value="3.20">3.20 m (Aserrable)</option>
+                                <option value="4.00">4.00 m (Vigas)</option>
+                                <option value="5.20">5.20 m (Postes / Exportación)</option>
+                                <option value="other">Otro</option>
+                            </select>
+                            <input type="number" min="0" id="ruma_trozo_other" placeholder="Largo (m)" class="hidden input-field w-full border rounded-md p-3 outline-none transition mt-2">
+                        </div>
+                    </div>
+                    <div><label class="block text-sm font-medium opacity-80 mb-2">Alturas de la Pila (m)</label><div id="ruma_heights_container" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2"></div><button id="addRumaHeightBtn" class="mt-3 w-full bg-white/5 hover:bg-white/10 font-semibold py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center space-x-2 text-sm border border-inherit"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg><span>Agregar Medición de Altura</span></button></div>
+                </div>
+                <div id="ruma_pino_inputs" class="hidden space-y-6">
+                    <p class="text-center opacity-70 text-sm">Calcula el volumen sólido sumando cada trozo.</p>
+                    <div><label for="ruma_pino_method" class="block text-sm font-medium opacity-80 mb-2">Método por Trozo</label><select id="ruma_pino_method" class="input-field w-full border rounded-md p-3 outline-none transition"><option value="smalian">Smalian</option><option value="huber">Huber</option></select></div>
+                    <div id="ruma_pino_logs_container" class="space-y-4 max-h-96 overflow-y-auto custom-scrollbar pr-2"></div>
+                    <button id="addRumaLogBtn" class="w-full bg-lime-900/50 hover:bg-lime-900/80 font-semibold py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center space-x-2 border border-lime-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg><span>Agregar Trozo</span></button>
+                </div>
+            </div>
+
+            <div id="navContent" class="hidden space-y-6">
+                <p class="text-center opacity-70 text-sm">Herramientas de orientación y ubicación en tiempo real.</p>
+                <div id="sensors-content" class="hidden space-y-6">
+                    <!-- Map -->
+                    <div id="map" class="h-64 w-full rounded-lg border border-inherit"></div>
+                    <!-- Sensors Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Compass Section -->
+                        <div class="bg-black/20 p-4 rounded-lg text-center">
+                            <h3 class="font-semibold text-lg mb-2">Brújula</h3>
+                            <div class="relative w-40 h-40 sm:w-48 sm:h-48 mx-auto">
+                                <div class="w-full h-full bg-slate-700 rounded-full flex items-center justify-center">
+                                    <svg id="compass-rose" class="w-full h-full p-2" viewBox="0 0 100 100">
+                                        <circle cx="50" cy="50" r="48" stroke="rgba(255,255,255,0.3)" stroke-width="1" fill="none"/>
+                                        <path d="M50 0 L45 10 L50 2 L55 10 Z" fill="#ef4444"/> <!-- North -->
+                                        <path d="M50 100 L45 90 L50 98 L55 90 Z" fill="rgba(255,255,255,0.7)"/> <!-- South -->
+                                        <text x="47" y="7" font-size="8" fill="#ef4444" font-weight="bold">N</text>
+                                        <text x="47" y="96" font-size="6" fill="rgba(255,255,255,0.7)">S</text>
+                                        <text x="4" y="52" font-size="6" fill="rgba(255,255,255,0.7)">O</text>
+                                        <text x="88" y="52" font-size="6" fill="rgba(255,255,255,0.7)">E</text>
+                                    </svg>
+                                </div>
+                            </div>
+                            <p id="azimuth" class="text-2xl font-bold font-mono mt-2">--°</p>
+                            <p id="direction" class="opacity-80">--</p>
+                        </div>
+                        <!-- GPS Section -->
+                        <div class="bg-black/20 p-4 rounded-lg flex flex-col justify-center">
+                            <h3 class="font-semibold text-lg mb-2 text-center">Coordenadas GPS</h3>
+                            <div class="space-y-2 text-center">
+                                <div>
+                                    <p class="text-sm opacity-70">Latitud</p>
+                                    <p id="latitude" class="font-mono font-semibold">--</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm opacity-70">Longitud</p>
+                                    <p id="longitude" class="font-mono font-semibold">--</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm opacity-70">Precisión</p>
+                                    <p id="accuracy" class="font-mono font-semibold">--</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="activate-sensors-container">
+                    <button id="activate-sensors-btn" class="w-full bg-sky-800/80 hover:bg-sky-800 font-semibold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center space-x-2 border border-sky-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <span>Activar Sensores y Mapa</span>
+                    </button>
+                    <p id="sensors-error" class="text-center text-red-400 mt-4 text-sm"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="result-container" class="hidden mt-8">
+            <div id="result" class="bg-black/20 p-4 sm:p-6 rounded-lg border shadow-inner">
+                <p id="result-title" class="text-center opacity-80 text-lg mb-2">Volumen Estimado</p>
+                <div id="result-value" class="text-2xl sm:text-3xl font-bold text-white text-center"></div>
+            </div>
+            <div id="value-calculator" class="mt-6 bg-black/20 p-4 sm:p-6 rounded-lg border border-white/20">
+                <h3 class="text-lg font-semibold mb-4 text-center">Calculadora de Valor</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                    <div>
+                        <label for="price-species" class="block text-sm font-medium opacity-80 mb-2">Especie y Unidad</label>
+                        <select id="price-species" class="input-field w-full border rounded-md p-3 outline-none transition">
+                            <option value="pino">Pino (CLP / m³)</option>
+                            <option value="eucalipto">Eucalipto (CLP / metro ruma)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="price" class="block text-sm font-medium opacity-80 mb-2">Precio</label>
+                        <input type="number" min="0" id="price" placeholder="Ej: 25000" class="input-field w-full border rounded-md p-3 outline-none transition">
+                    </div>
+                </div>
+                <div id="value-result-container" class="hidden mt-4 text-center">
+                    <p class="opacity-80">Valor Monetario Total Estimado</p>
+                    <p id="value-result" class="text-2xl sm:text-3xl font-bold text-white"></p>
+                </div>
+            </div>
+            <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <button id="export-csv-btn" class="w-full bg-green-800/80 hover:bg-green-800 font-semibold py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center space-x-2 border border-green-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                    <span>Exportar a CSV</span>
+                </button>
+                <button id="export-pdf-btn" class="w-full bg-blue-900/50 hover:bg-blue-900/80 font-semibold py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center space-x-2 border border-blue-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" /></svg>
+                    <span>Exportar a PDF</span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="text-center mt-8">
+            <p class="text-xs opacity-60">Nota: El volumen comercial (82%) y el factor de ruma (0.65) son estimaciones basadas en estándares de INFOR y la industria forestal chilena.</p>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <div id="restore-session-modal" class="modal hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none">
+        <div class="bg-slate-800 rounded-lg p-6 shadow-xl max-w-sm w-full text-center">
+            <h3 class="text-lg font-bold text-white mb-2">Sesión Anterior Encontrada</h3>
+            <p class="text-slate-300 mb-6">¿Deseas restaurar los datos que ingresaste previamente?</p>
+            <div class="flex justify-center space-x-4">
+                <button id="restore-yes" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition">Sí, restaurar</button>
+                <button id="restore-no" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition">No, empezar de nuevo</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="save-project-modal" class="modal hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none">
+        <div class="bg-slate-800 rounded-lg p-6 shadow-xl max-w-sm w-full text-center">
+            <h3 class="text-lg font-bold text-white mb-4">Guardar Proyecto</h3>
+            <input type="text" id="project-name-input" placeholder="Nombre del proyecto (Ej: Predio Santa Ana)" class="input-field w-full border rounded-md p-3 outline-none transition mb-4">
+            <div class="flex justify-center space-x-4">
+                <button id="save-project-confirm" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition">Guardar</button>
+                <button id="save-project-cancel" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="load-project-modal" class="modal hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none">
+        <div class="bg-slate-800 rounded-lg p-6 shadow-xl max-w-md w-full">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-white">Cargar Proyecto</h3>
+                <button id="load-project-close" class="p-1 rounded-full hover:bg-white/10">&times;</button>
+            </div>
+            <div id="project-list" class="max-h-80 overflow-y-auto custom-scrollbar space-y-2"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- PWA Service Worker & Manifest Registration ---
+        const swScriptContent = `
+            const CACHE_NAME = 'cubifor-cache-v3'; // Incremented cache version
+            const urlsToCache = [
+                '/',
+                'https://cdn.tailwindcss.com',
+                'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js',
+                'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+                'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+                'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+                'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png'
+            ];
+
+            self.addEventListener('install', event => {
+                event.waitUntil(
+                    caches.open(CACHE_NAME)
+                    .then(cache => {
+                        console.log('Opened cache');
+                        return cache.addAll(urlsToCache);
+                    })
+                );
+            });
+            
+            self.addEventListener('activate', event => {
+              event.waitUntil(
+                caches.keys().then(cacheNames => {
+                  return Promise.all(
+                    cacheNames.filter(cacheName => {
+                      return cacheName.startsWith('cubifor-cache-') && cacheName !== CACHE_NAME;
+                    }).map(cacheName => {
+                      return caches.delete(cacheName);
+                    })
+                  );
+                })
+              );
+            });
+
+            self.addEventListener('fetch', event => {
+                event.respondWith(
+                    caches.match(event.request)
+                    .then(response => {
+                        return response || fetch(event.request);
+                    })
+                );
+            });
+        `;
+
+        const manifestContent = {
+            "name": "CubiFor - Cubicador Forestal",
+            "short_name": "CubiFor",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#0f172a",
+            "theme_color": "#1e293b",
+            "description": "Herramienta de cubicación forestal para Pino y Eucalipto.",
+            "icons": [{
+                "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' fill='%23a3e635'%3E%3Crect width='192' height='192' rx='32' fill='%231e293b'/%3E%3Cpath d='M96 18a6 6 0 0 1 6 6v92.5l26.4-11.38a6 6 0 0 1 6.4 12.24l-36 15.44a6 6 0 0 1-4.8 0l-36-15.44a6 6 0 0 1 6.4-12.24L90 116.5V24a6 6 0 0 1 6-6Z' /%3E%3Cpath d='M156 108a6 6 0 0 1-6 6H42a6 6 0 1 1 0-12h108a6 6 0 0 1 6 6Z' /%3E%3Cpath d='M156 132a6 6 0 0 1-6 6H42a6 6 0 1 1 0-12h108a6 6 0 0 1 6 6Z' /%3E%3Cpath d='M156 156a6 6 0 0 1-6 6H42a6 6 0 1 1 0-12h108a6 6 0 0 1 6 6Z' /%3E%3C/svg%3E",
+                "sizes": "192x192",
+                "type": "image/svg+xml"
+            }, {
+                "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23a3e635'%3E%3Crect width='512' height='512' rx='85.3' fill='%231e293b'/%3E%3Cpath d='M256 48a16 16 0 0 1 16 16v246.66l70.4-30.34a16 16 0 0 1 17.06 32.64l-96 41.14a16 16 0 0 1-12.8 0l-96-41.14a16 16 0 0 1 17.06-32.64L240 310.66V64a16 16 0 0 1 16-16Z' /%3E%3Cpath d='M416 288a16 16 0 0 1-16 16H112a16 16 0 1 1 0-32h288a16 16 0 0 1 16 16Z' /%3E%3Cpath d='M416 352a16 16 0 0 1-16 16H112a16 16 0 1 1 0-32h288a16 16 0 0 1 16 16Z' /%3E%3Cpath d='M416 416a16 16 0 0 1-16 16H112a16 16 0 1 1 0-32h288a16 16 0 0 1 16 16Z' /%3E%3C/svg%3E",
+                "sizes": "512x512",
+                "type": "image/svg+xml"
+            }]
+        };
+
+        const swBlob = new Blob([swScriptContent], {type: 'application/javascript'});
+        const manifestBlob = new Blob([JSON.stringify(manifestContent)], {type: 'application/json'});
+        const swURL = URL.createObjectURL(swBlob);
+        const manifestURL = URL.createObjectURL(manifestBlob);
+        document.querySelector('link[rel="manifest"]').setAttribute('href', manifestURL);
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register(swURL).then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+
+        // --- GLOBAL STATE ---
+        let calculatedVolumes = { pino: 0, eucaliptoSolid: 0, eucaliptoRuma: 0 };
+        const { jsPDF } = window.jspdf;
+        let gpsWatchId = null;
+        let map = null;
+        let userMarker = null;
+        let accuracyCircle = null;
+        
+        // --- DOM ELEMENTS ---
+        const appContainer = document.getElementById('app-container');
+        const resultContainer = document.getElementById('result-container');
+        const resultTitle = document.getElementById('result-title');
+        const resultValue = document.getElementById('result-value');
+        const valueCalculator = document.getElementById('value-calculator');
+        const priceInput = document.getElementById('price');
+        const priceSpeciesSelect = document.getElementById('price-species');
+        const valueResultContainer = document.getElementById('value-result-container');
+        const valueResult = document.getElementById('value-result');
+        const exportPdfBtn = document.getElementById('export-pdf-btn');
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIconSun = document.getElementById('theme-icon-sun');
+        const themeIconMoon = document.getElementById('theme-icon-moon');
+        const plotList = document.getElementById('plotList');
+        
+        // Modal Elements
+        const restoreModal = document.getElementById('restore-session-modal');
+        const saveModal = document.getElementById('save-project-modal');
+        const loadModal = document.getElementById('load-project-modal');
+        const restoreYesBtn = document.getElementById('restore-yes');
+        const restoreNoBtn = document.getElementById('restore-no');
+
+        // Navigation Elements
+        const activateSensorsBtn = document.getElementById('activate-sensors-btn');
+        const sensorsContent = document.getElementById('sensors-content');
+        const activateSensorsContainer = document.getElementById('activate-sensors-container');
+        const sensorsError = document.getElementById('sensors-error');
+        const compassRose = document.getElementById('compass-rose');
+        const azimuthDisplay = document.getElementById('azimuth');
+        const directionDisplay = document.getElementById('direction');
+        const latitudeDisplay = document.getElementById('latitude');
+        const longitudeDisplay = document.getElementById('longitude');
+        const accuracyDisplay = document.getElementById('accuracy');
+
+
+        // --- MODAL VISIBILITY ---
+        function toggleModal(modal, show) {
+            if (show) {
+                modal.classList.remove('hidden');
+                setTimeout(() => modal.classList.remove('opacity-0', 'pointer-events-none'), 10);
+            } else {
+                modal.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => modal.classList.add('hidden'), 250);
+            }
+        }
+        
+        // --- THEME/CONTRAST MODE ---
+        themeToggle.addEventListener('click', () => {
+            appContainer.classList.toggle('high-contrast');
+            const isHighContrast = appContainer.classList.contains('high-contrast');
+            themeIconSun.classList.toggle('hidden', isHighContrast);
+            themeIconMoon.classList.toggle('hidden', !isHighContrast);
+            localStorage.setItem('cubiforTheme', isHighContrast ? 'high' : 'dark');
+        });
+
+        function applyInitialTheme() {
+            const savedTheme = localStorage.getItem('cubiforTheme');
+            if (savedTheme === 'high') {
+                appContainer.classList.add('high-contrast');
+                themeIconSun.classList.add('hidden');
+                themeIconMoon.classList.remove('hidden');
+            }
+        }
+
+        // --- EXPORT FUNCTIONS ---
+        exportPdfBtn.addEventListener('click', async () => {
+            const doc = new jsPDF();
+            const reportContent = document.getElementById('app-container');
+            const originalBorder = reportContent.style.border;
+            reportContent.style.border = 'none';
+
+            try {
+                const canvas = await html2canvas(reportContent, { 
+                    scale: 2, 
+                    useCORS: true,
+                    backgroundColor: appContainer.classList.contains('high-contrast') ? '#FFFFFF' : '#0f172a'
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+                const imgProps = doc.getImageProperties(imgData);
+                const pdfWidth = doc.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+                const plotCards = plotList.querySelectorAll('.plot-card');
+                const coordsData = [];
+                plotCards.forEach((card, index) => {
+                    const coords = card.dataset.coords;
+                    if (coords) {
+                        const [lat, lon] = coords.split(',');
+                        coordsData.push([index + 1, parseFloat(lat).toFixed(6), parseFloat(lon).toFixed(6)]);
+                    }
+                });
+
+                if (coordsData.length > 0) {
+                    doc.addPage();
+                    doc.setFontSize(16);
+                    doc.text("Ubicación de Parcelas", 14, 22);
+                    doc.autoTable({
+                        head: [['Parcela #', 'Latitud', 'Longitud']],
+                        body: coordsData,
+                        startY: 30,
+                    });
+                }
+                
+                doc.save(`Reporte_CubiFor_${new Date().toISOString().slice(0,10)}.pdf`);
+            } catch (error) {
+                console.error("Error al generar PDF:", error);
+            } finally {
+                reportContent.style.border = originalBorder;
+            }
+        });
+
+        exportCsvBtn.addEventListener('click', () => {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            const headers = ["ID_Parcela", "Especie", "Latitud", "Longitud", "ID_Arbol", "DAP_cm", "Altura_m"];
+            csvContent += headers.join(",") + "\r\n";
+
+            document.querySelectorAll('#plotList .plot-card').forEach((card, plotIndex) => {
+                const plotId = plotIndex + 1;
+                const species = card.querySelector('.plot-species').value;
+                const coords = card.dataset.coords ? card.dataset.coords.split(',') : ['N/A', 'N/A'];
+                
+                card.querySelectorAll('.tree-list-container > div').forEach((tree, treeIndex) => {
+                    const treeId = treeIndex + 1;
+                    const dap = tree.querySelector('.tree-dap').value || '0';
+                    const height = tree.querySelector('.tree-height').value || '0';
+                    const row = [plotId, species, coords[0], coords[1], treeId, dap, height];
+                    csvContent += row.join(",") + "\r\n";
+                });
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `cubicacion_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+        
+        // --- VALUE CALCULATOR & SPECIES SYNC ---
+        function updatePriceCalculatorSpecies() {
+            const activeTab = document.querySelector('input[name="tabs"]:checked').id;
+            let currentSpecies = 'pino'; // Default
+
+            if (activeTab === 'tab-standing') {
+                currentSpecies = document.getElementById('species').value;
+            } else if (activeTab === 'tab-ruma') {
+                currentSpecies = document.getElementById('ruma_species').value;
+            } else if (activeTab === 'tab-plot') {
+                const plotCards = plotList.querySelectorAll('.plot-card');
+                const speciesInPlots = Array.from(plotCards).map(c => c.querySelector('.plot-species').value);
+                if (speciesInPlots.length > 0 && speciesInPlots.every(s => s.includes('globulus'))) {
+                    currentSpecies = 'globulus';
+                }
+            }
+            
+            if (currentSpecies.includes('pino')) {
+                priceSpeciesSelect.value = 'pino';
+            } else {
+                priceSpeciesSelect.value = 'eucalipto';
+            }
+            calculateValue();
+        }
+
+        function calculateValue() {
+            const price = parseFloat(priceInput.value) || 0;
+            const speciesUnit = priceSpeciesSelect.value;
+            if (price <= 0) {
+                valueResultContainer.classList.add('hidden');
+                return;
+            }
+
+            let totalValue = 0;
+            const totalAreaHa = parseFloat(document.getElementById('totalAreaHa').value) || 1;
+            const activeTab = document.querySelector('input[name="tabs"]:checked').id;
+
+            if (speciesUnit === 'pino') {
+                totalValue = price * calculatedVolumes.pino * (activeTab === 'tab-plot' ? totalAreaHa : 1);
+            } else { // eucalipto
+                totalValue = price * calculatedVolumes.eucaliptoRuma * (activeTab === 'tab-plot' ? totalAreaHa : 1);
+            }
+            
+            valueResult.textContent = `$${totalValue.toLocaleString('es-CL', { maximumFractionDigits: 0 })}`;
+            valueResultContainer.classList.remove('hidden');
+        }
+        priceInput.addEventListener('input', calculateValue);
+        priceSpeciesSelect.addEventListener('change', calculateValue);
+
+        // --- SESSION & PROJECT MANAGEMENT ---
+        function getCurrentState() {
+            const state = {};
+            document.querySelectorAll('input, select').forEach(el => {
+                if(el.id) state[el.id] = el.type === 'radio' ? el.checked : el.value;
+            });
+            state.plots = Array.from(document.querySelectorAll('#plotList .plot-card')).map(card => {
+                const methodEl = card.querySelector('.plot-method');
+                return {
+                    species: card.querySelector('.plot-species').value,
+                    size: card.querySelector('.plot-size').value,
+                    volumeType: card.querySelector('.plot-volume-type').value,
+                    unit: card.querySelector('.plot-unit').value,
+                    method: methodEl ? methodEl.value : 'equation',
+                    coords: card.dataset.coords || '',
+                    trees: Array.from(card.querySelectorAll('.tree-list-container > div')).map(tree => ({
+                        dap: tree.querySelector('.tree-dap').value,
+                        height: tree.querySelector('.tree-height').value
+                    }))
+                }
+            });
+            state.rumaHeights = Array.from(document.querySelectorAll('#ruma_heights_container .ruma-height-input')).map(input => input.value);
+            state.rumaPinoLogs = Array.from(document.querySelectorAll('#ruma_pino_logs_container .p-3')).map(log => {
+                const logData = { length: log.querySelector('.ruma-log-length').value };
+                if (log.querySelector('.ruma-log-d-central')) {
+                    logData.d_central = log.querySelector('.ruma-log-d-central').value;
+                } else {
+                    logData.d1 = log.querySelector('.ruma-log-d1').value;
+                    logData.d2 = log.querySelector('.ruma-log-d2').value;
+                }
+                return logData;
+            });
+            return state;
+        }
+
+        function loadState(data) {
+            Object.keys(data).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (el.type === 'radio') el.checked = data[id];
+                    else el.value = data[id];
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+            if (data.plots) {
+                plotList.innerHTML = '';
+                data.plots.forEach(plotData => {
+                    createPlotEntry();
+                    const newCard = plotList.querySelector('.plot-card:last-child');
+                    newCard.querySelector('.plot-species').value = plotData.species;
+                    newCard.querySelector('.plot-size').value = plotData.size;
+                    newCard.querySelector('.plot-volume-type').value = plotData.volumeType;
+                    newCard.querySelector('.plot-unit').value = plotData.unit;
+                    const methodEl = newCard.querySelector('.plot-method');
+                    if(methodEl) methodEl.value = plotData.method;
+                    if (plotData.coords) {
+                        newCard.dataset.coords = plotData.coords;
+                        const coordsDisplay = newCard.querySelector('.coords-display');
+                        const [lat, lon] = plotData.coords.split(',');
+                        coordsDisplay.textContent = `Lat: ${parseFloat(lat).toFixed(5)}, Lon: ${parseFloat(lon).toFixed(5)}`;
+                        coordsDisplay.classList.remove('hidden');
+                    }
+                    const treeContainer = newCard.querySelector('.tree-list-container');
+                    treeContainer.innerHTML = '';
+                    plotData.trees.forEach(treeData => {
+                        createTreeEntry(treeContainer);
+                        const newTree = treeContainer.querySelector('div:last-child');
+                        newTree.querySelector('.tree-dap').value = treeData.dap;
+                        newTree.querySelector('.tree-height').value = treeData.height;
+                    });
+                });
+            }
+            if (data.rumaHeights) {
+                const rumaHeightsContainer = document.getElementById('ruma_heights_container');
+                rumaHeightsContainer.innerHTML = '';
+                data.rumaHeights.forEach(h => {
+                    createRumaHeightEntry();
+                    rumaHeightsContainer.querySelector('.ruma-height-input:last-child').value = h;
+                });
+            }
+            if (data.rumaPinoLogs) {
+                const rumaPinoLogsContainer = document.getElementById('ruma_pino_logs_container');
+                rumaPinoLogsContainer.innerHTML = '';
+                data.rumaPinoLogs.forEach(logData => {
+                    createRumaLogEntry();
+                    const newLog = rumaPinoLogsContainer.querySelector('.p-3:last-child');
+                    newLog.querySelector('.ruma-log-length').value = logData.length;
+                    if (logData.d_central) {
+                        newLog.querySelector('.ruma-log-d-central').value = logData.d_central;
+                    } else {
+                        newLog.querySelector('.ruma-log-d1').value = logData.d1;
+                        newLog.querySelector('.ruma-log-d2').value = logData.d2;
+                    }
+                });
+            }
+            handleTabChange();
+            calculateAndDisplay();
+        }
+
+        function saveSession() {
+            localStorage.setItem('cubiforLastSession', JSON.stringify(getCurrentState()));
+        }
+
+        restoreYesBtn.addEventListener('click', () => {
+            const savedSession = localStorage.getItem('cubiforLastSession');
+            if(savedSession) loadState(JSON.parse(savedSession));
+            toggleModal(restoreModal, false);
+        });
+
+        restoreNoBtn.addEventListener('click', () => {
+            localStorage.removeItem('cubiforLastSession');
+            toggleModal(restoreModal, false);
+        });
+
+        document.getElementById('save-project-btn').addEventListener('click', () => toggleModal(saveModal, true));
+        document.getElementById('save-project-cancel').addEventListener('click', () => toggleModal(saveModal, false));
+        document.getElementById('save-project-confirm').addEventListener('click', () => {
+            const projectName = document.getElementById('project-name-input').value.trim();
+            if (!projectName) {
+                alert("Por favor, ingrese un nombre para el proyecto.");
+                return;
+            }
+            const projects = JSON.parse(localStorage.getItem('cubiforProjects')) || [];
+            projects.push({ name: projectName, data: getCurrentState() });
+            localStorage.setItem('cubiforProjects', JSON.stringify(projects));
+            document.getElementById('project-name-input').value = '';
+            toggleModal(saveModal, false);
+        });
+
+        document.getElementById('load-project-btn').addEventListener('click', () => {
+            const projects = JSON.parse(localStorage.getItem('cubiforProjects')) || [];
+            const projectList = document.getElementById('project-list');
+            projectList.innerHTML = '';
+            if (projects.length === 0) {
+                projectList.innerHTML = '<p class="text-center opacity-70">No hay proyectos guardados.</p>';
+            } else {
+                projects.forEach((project, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'flex justify-between items-center p-3 bg-white/5 rounded-lg';
+                    item.innerHTML = `<span>${project.name}</span>
+                                      <div class="space-x-2">
+                                        <button data-index="${index}" class="load-btn bg-green-600 px-3 py-1 rounded text-sm">Cargar</button>
+                                        <button data-index="${index}" class="delete-btn bg-red-600 px-3 py-1 rounded text-sm">Borrar</button>
+                                      </div>`;
+                    projectList.appendChild(item);
+                });
+            }
+            toggleModal(loadModal, true);
+        });
+        document.getElementById('load-project-close').addEventListener('click', () => toggleModal(loadModal, false));
+        document.getElementById('project-list').addEventListener('click', (e) => {
+            const projects = JSON.parse(localStorage.getItem('cubiforProjects')) || [];
+            if (e.target.classList.contains('load-btn')) {
+                const index = e.target.dataset.index;
+                loadState(projects[index].data);
+                toggleModal(loadModal, false);
+            }
+            if (e.target.classList.contains('delete-btn')) {
+                const index = e.target.dataset.index;
+                if (confirm(`¿Seguro que quieres borrar el proyecto "${projects[index].name}"?`)) {
+                    projects.splice(index, 1);
+                    localStorage.setItem('cubiforProjects', JSON.stringify(projects));
+                    document.getElementById('load-project-btn').click(); // Refresh list
+                }
+            }
+        });
+
+
+        // --- CORE CALCULATION LOGIC ---
+        const COMMERCIAL_FACTOR = 0.82;
+        const RUMA_FACTOR = 0.65; 
+
+        function calculateAndDisplay() {
+            let isValid = true;
+            calculatedVolumes = { pino: 0, eucaliptoSolid: 0, eucaliptoRuma: 0 };
+            const activeTab = document.querySelector('input[name="tabs"]:checked').id;
+
+            if (activeTab === 'tab-standing') {
+                const species = document.getElementById('species').value;
+                const method = document.getElementById('standingMethod').value;
+                const volumeType = document.getElementById('standingVolumeType').value;
+                const dap = parseFloat(document.getElementById('dap').value);
+                const height = parseFloat(document.getElementById('height').value);
+                resultTitle.textContent = 'Volumen Estimado del Árbol';
+
+                if (!dap || !height || dap <= 0 || height <= 0) {
+                    isValid = false;
+                } else {
+                    let volume = 0;
+                    if (method === 'equation') {
+                        volume = (species === 'pino')
+                            ? -0.00501 + 0.0000412 * Math.pow(dap, 2) * height
+                            : 0.00318 + 0.0000451 * Math.pow(dap, 2) * height;
+                    } else {
+                        const dap_m = dap / 100;
+                        const ff = (species === 'pino') ? 0.53 : 0.60;
+                        volume = (Math.PI / 4) * Math.pow(dap_m, 2) * height * ff;
+                    }
+                    volume = Math.max(0, volume);
+                    if (volumeType === 'commercial') volume *= COMMERCIAL_FACTOR;
+
+                    if (species.startsWith('globulus')) {
+                        calculatedVolumes.eucaliptoSolid = volume;
+                        calculatedVolumes.eucaliptoRuma = volume / RUMA_FACTOR;
+                        resultValue.innerHTML = `<div>${(volume / RUMA_FACTOR).toFixed(4)} metros ruma</div><div class="text-sm opacity-70 mt-1">${volume.toFixed(4)} m³ sólido</div>`;
+                    } else {
+                        calculatedVolumes.pino = volume;
+                        resultValue.innerHTML = `<p>${volume.toFixed(4)} m³</p>`;
+                    }
+                }
+            } else if (activeTab === 'tab-plot') {
+                resultTitle.textContent = 'Resultados de Cubicación de Bosque';
+                const plotCards = plotList.querySelectorAll('.plot-card');
+                let pinoTotalVolHa = 0, pinoPlots = 0;
+                let eucaSolidTotalVolHa = 0, eucaRumaTotalVolHa = 0, eucaPlots = 0;
+                const totalAreaHa = parseFloat(document.getElementById('totalAreaHa').value) || 0;
+
+                if (plotCards.length === 0) isValid = false;
+
+                plotCards.forEach(card => {
+                    const species = card.querySelector('.plot-species').value;
+                    const plotSize = parseFloat(card.querySelector('.plot-size').value);
+                    const method = card.querySelector('.plot-method').value;
+                    const volumeType = card.querySelector('.plot-volume-type').value;
+                    if (isNaN(plotSize) || plotSize <= 0) { isValid = false; return; }
+                    
+                    let totalPlotVolume = 0;
+                    card.querySelectorAll('.tree-list-container > div').forEach(tree => {
+                        const dap = parseFloat(tree.querySelector('.tree-dap').value);
+                        const height = parseFloat(tree.querySelector('.tree-height').value);
+                        if (!dap || !height || dap <= 0 || height <= 0) return;
+                        
+                        let treeVolume = 0;
+                        if (method === 'equation') {
+                            treeVolume = (species === 'pino')
+                                ? -0.00501 + 0.0000412 * Math.pow(dap, 2) * height
+                                : 0.00318 + 0.0000451 * Math.pow(dap, 2) * height;
+                        } else {
+                            const dap_m = dap / 100;
+                            const ff = (species === 'pino') ? 0.53 : 0.60;
+                            treeVolume = (Math.PI / 4) * Math.pow(dap_m, 2) * height * ff;
+                        }
+                        totalPlotVolume += Math.max(0, treeVolume);
+                    });
+                    
+                    if (volumeType === 'commercial') totalPlotVolume *= COMMERCIAL_FACTOR;
+                    let volumePerHectare = (totalPlotVolume / plotSize) * 10000;
+                    if (species === 'pino') { pinoTotalVolHa += volumePerHectare; pinoPlots++; }
+                    else { eucaSolidTotalVolHa += volumePerHectare; eucaRumaTotalVolHa += (volumePerHectare / RUMA_FACTOR); eucaPlots++; }
+                });
+                
+                let resultHTML = '<table class="w-full text-left result-table">';
+                resultHTML += '<thead><tr><th>Especie</th><th>Vol/ha</th><th>Vol Total</th></tr></thead><tbody>';
+                
+                if (pinoPlots > 0) {
+                    const avg = pinoTotalVolHa / pinoPlots;
+                    calculatedVolumes.pino = avg;
+                    resultHTML += `<tr><td>Pino</td><td>${avg.toFixed(2)} m³/ha</td><td>${(avg * totalAreaHa).toFixed(2)} m³</td></tr>`;
+                }
+                if (eucaPlots > 0) {
+                    const avgSolid = eucaSolidTotalVolHa / eucaPlots;
+                    const avgRuma = eucaRumaTotalVolHa / eucaPlots;
+                    calculatedVolumes.eucaliptoSolid = avgSolid;
+                    calculatedVolumes.eucaliptoRuma = avgRuma;
+                    resultHTML += `<tr><td>Eucalipto</td><td>${avgRuma.toFixed(2)} mr/ha</td><td>${(avgRuma * totalAreaHa).toFixed(2)} mr</td></tr>`;
+                }
+                resultHTML += '</tbody></table>';
+                if (pinoPlots > 0 || eucaPlots > 0) resultValue.innerHTML = resultHTML; else isValid = false;
+
+            } else if (activeTab === 'tab-ruma') {
+                const species = document.getElementById('ruma_species').value;
+                if (species === 'eucalipto') {
+                    resultTitle.textContent = 'Volumen de Ruma (Eucalipto)';
+                    const largoRuma = parseFloat(document.getElementById('ruma_largo').value);
+                    const largoTrozoValue = document.getElementById('ruma_trozo_select').value;
+                    let largoTrozo = largoTrozoValue === 'other' ? parseFloat(document.getElementById('ruma_trozo_other').value) : parseFloat(largoTrozoValue);
+                    
+                    let validHeights = 0, totalHeight = 0;
+                    document.querySelectorAll('.ruma-height-input').forEach(input => {
+                        const h = parseFloat(input.value);
+                        if (h > 0) { totalHeight += h; validHeights++; }
+                    });
+                    if (!largoRuma || !largoTrozo || largoRuma <= 0 || largoTrozo <= 0 || validHeights === 0) {
+                        isValid = false;
+                    } else {
+                        const avgHeight = totalHeight / validHeights;
+                        const volRuma = largoRuma * avgHeight * largoTrozo;
+                        calculatedVolumes.eucaliptoRuma = volRuma;
+                        resultValue.innerHTML = `<p>${volRuma.toFixed(2)} metros ruma</p>`;
+                    }
+                } else { // pino
+                    resultTitle.textContent = 'Volumen Sólido Total (Pino)';
+                    let totalSolidVolume = 0;
+                    document.querySelectorAll('#ruma_pino_logs_container .p-3').forEach(log => {
+                        const length = parseFloat(log.querySelector('.ruma-log-length').value);
+                        let logVolume = 0;
+                        if (document.getElementById('ruma_pino_method').value === 'huber') {
+                            const d_central = parseFloat(log.querySelector('.ruma-log-d-central').value);
+                            if(d_central > 0 && length > 0) logVolume = Math.PI * Math.pow(d_central / 200, 2) * length;
+                        } else {
+                            const d1 = parseFloat(log.querySelector('.ruma-log-d1').value);
+                            const d2 = parseFloat(log.querySelector('.ruma-log-d2').value);
+                            if(d1 > 0 && d2 > 0 && length > 0) logVolume = ((Math.PI * Math.pow(d1 / 200, 2)) + (Math.PI * Math.pow(d2 / 200, 2))) / 2 * length;
+                        }
+                        totalSolidVolume += logVolume;
+                    });
+                    if (totalSolidVolume > 0) {
+                        calculatedVolumes.pino = totalSolidVolume;
+                        resultValue.innerHTML = `<p>${totalSolidVolume.toFixed(4)} m³</p>`;
+                    } else { isValid = false; }
+                }
+            }
+
+            if (isValid) {
+                resultContainer.classList.remove('hidden');
+                updatePriceCalculatorSpecies();
+            } else {
+                resultContainer.classList.add('hidden');
+            }
+            saveSession();
+        }
+        
+        // --- UI & EVENT LISTENERS ---
+        function handleTabChange() {
+            const activeTab = document.querySelector('input[name="tabs"]:checked').id;
+            document.getElementById('standingContent').classList.toggle('hidden', activeTab !== 'tab-standing');
+            document.getElementById('plotContent').classList.toggle('hidden', activeTab !== 'tab-plot');
+            document.getElementById('rumaContent').classList.toggle('hidden', activeTab !== 'tab-ruma');
+            document.getElementById('navContent').classList.toggle('hidden', activeTab !== 'tab-nav');
+            
+            if (activeTab === 'tab-nav') {
+                resultContainer.classList.add('hidden');
+            } else {
+                stopNavigationSensors();
+                calculateAndDisplay();
+            }
+        }
+        document.querySelectorAll('input[name="tabs"]').forEach(radio => radio.addEventListener('change', handleTabChange));
+        
+        document.getElementById('ruma_trozo_select').addEventListener('change', (e) => {
+            document.getElementById('ruma_trozo_other').classList.toggle('hidden', e.target.value !== 'other');
+        });
+        
+        function createRumaHeightEntry() {
+            const container = document.getElementById('ruma_heights_container');
+            const count = container.children.length + 1;
+            const entry = document.createElement('div');
+            entry.className = 'flex items-center space-x-2';
+            entry.innerHTML = `<span class="font-mono text-sm opacity-70 w-6 text-center">${count}.</span><input type="number" min="0" placeholder="Altura (m)" class="ruma-height-input input-field w-full border rounded-md p-2 outline-none transition"><button class="remove-btn opacity-70 hover:text-red-500 transition-colors p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg></button>`;
+            container.appendChild(entry);
+        }
+        document.getElementById('addRumaHeightBtn').addEventListener('click', createRumaHeightEntry);
+
+        function createRumaLogEntry() {
+            const container = document.getElementById('ruma_pino_logs_container');
+            const count = container.children.length + 1;
+            const entry = document.createElement('div');
+            entry.className = 'p-3 bg-black/20 rounded-lg space-y-2';
+            const method = document.getElementById('ruma_pino_method').value;
+            let inputsHTML = method === 'huber' ? `<input type="number" min="0" placeholder="Diámetro Central (cm)" class="ruma-log-d-central input-field w-full border rounded-md p-2 outline-none transition">` : `<div class="flex space-x-2"><input type="number" min="0" placeholder="D. Mayor (cm)" class="ruma-log-d1 input-field w-full border rounded-md p-2 outline-none transition"><input type="number" min="0" placeholder="D. Menor (cm)" class="ruma-log-d2 input-field w-full border rounded-md p-2 outline-none transition"></div>`;
+            entry.innerHTML = `<div class="flex justify-between items-center"><span class="font-mono text-sm opacity-70">Trozo ${count}</span><button class="remove-btn opacity-70 hover:text-red-500 transition-colors p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg></button></div>${inputsHTML}<input type="number" min="0" placeholder="Largo (m)" class="ruma-log-length input-field w-full border rounded-md p-2 outline-none transition">`;
+            container.appendChild(entry);
+        }
+        document.getElementById('addRumaLogBtn').addEventListener('click', createRumaLogEntry);
+        document.getElementById('ruma_pino_method').addEventListener('change', () => {
+            document.getElementById('ruma_pino_logs_container').innerHTML = '';
+            createRumaLogEntry();
+        });
+
+        let plotCounter = 0;
+        function createTreeEntry(container) {
+            const count = container.children.length + 1;
+            const entry = document.createElement('div');
+            entry.className = 'flex items-center space-x-2';
+            entry.innerHTML = `<span class="font-mono text-sm opacity-70 w-6 text-center">${count}.</span><input type="number" min="0" placeholder="DAP (cm)" class="tree-dap input-field w-full border rounded-md p-2 outline-none transition"><input type="number" min="0" placeholder="Altura (m)" class="tree-height input-field w-full border rounded-md p-2 outline-none transition"><button class="remove-btn opacity-70 hover:text-red-500 transition-colors p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg></button>`;
+            container.appendChild(entry);
+        }
+        function createPlotEntry() {
+            plotCounter = plotList.children.length + 1;
+            const plotCard = document.createElement('div');
+            plotCard.className = 'plot-card bg-black/20 p-4 rounded-lg border border-inherit space-y-3';
+            plotCard.innerHTML = `<div class="flex justify-between items-center"><h3 class="plot-title font-semibold text-lg">Parcela ${plotCounter}</h3><button class="remove-plot-btn opacity-70 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-white/10"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label class="block text-xs font-medium opacity-80 mb-1">Especie</label><select class="plot-species input-field w-full border rounded-md p-2 outline-none transition text-sm"><option value="pino">Pino</option><option value="globulus">E. Globulus</option></select></div><div><label class="block text-xs font-medium opacity-80 mb-1">Superficie</label><select class="plot-size input-field w-full border rounded-md p-2 outline-none transition text-sm"><option value="100" selected>100 m²</option><option value="200">200 m²</option><option value="250">250 m²</option><option value="500">500 m²</option><option value="1000">1000 m²</option></select></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label class="block text-xs font-medium opacity-80 mb-1">Volumen</label><select class="plot-volume-type input-field w-full border rounded-md p-2 outline-none transition text-sm"><option value="total">Total</option><option value="commercial">Comercial</option></select></div><div class="euca-unit-container hidden"><label class="block text-xs font-medium opacity-80 mb-1">Unidad</label><select class="plot-unit input-field w-full border rounded-md p-2 outline-none transition text-sm"><option value="cubic">m³</option><option value="ruma">metros ruma</option></select></div></div><div><label class="block text-xs font-medium opacity-80 mb-1">Método</label><select class="plot-method input-field w-full border rounded-md p-2 outline-none transition text-sm"><option value="equation" selected>Ecuación de Volumen (Recomendado)</option><option value="form_factor">Factor de Forma</option></select></div><div class="border-t border-inherit pt-3 mt-3"><button class="capture-coords-btn w-full bg-sky-800/50 hover:bg-sky-800/80 font-semibold py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center space-x-2 text-sm border border-sky-700">📍 Capturar Coordenadas</button><p class="coords-display text-center text-xs opacity-70 mt-2 hidden"></p></div><div class="border-t border-inherit pt-3 mt-3"><h4 class="font-medium mb-2 opacity-80">Árboles</h4><div class="tree-list-container space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1"></div><button class="add-tree-btn-plot mt-3 w-full bg-white/5 hover:bg-white/10 font-semibold py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center space-x-2 text-sm border border-inherit"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg><span>Agregar Árbol</span></button></div>`;
+            plotList.appendChild(plotCard);
+            createTreeEntry(plotCard.querySelector('.tree-list-container'));
+        }
+        document.getElementById('addPlotBtn').addEventListener('click', createPlotEntry);
+        
+        appContainer.addEventListener('click', function(e) {
+            const removeBtn = e.target.closest('.remove-btn');
+            if(removeBtn) {
+                const entry = removeBtn.parentElement;
+                const container = entry.parentElement;
+                entry.remove();
+                container.querySelectorAll('.font-mono').forEach((span, index) => { span.textContent = `${index + 1}.`; });
+            }
+            const removePlotBtn = e.target.closest('.remove-plot-btn');
+            if (removePlotBtn) { 
+                removePlotBtn.closest('.plot-card').remove(); 
+                plotList.querySelectorAll('.plot-title').forEach((title, index) => { title.textContent = `Parcela ${index + 1}`; });
+                plotCounter = plotList.children.length;
+            }
+            const addTreeBtn = e.target.closest('.add-tree-btn-plot');
+            if (addTreeBtn) createTreeEntry(addTreeBtn.parentElement.querySelector('.tree-list-container'));
+
+            const captureCoordsBtn = e.target.closest('.capture-coords-btn');
+            if(captureCoordsBtn) {
+                const plotCard = captureCoordsBtn.closest('.plot-card');
+                const coordsDisplay = plotCard.querySelector('.coords-display');
+                coordsDisplay.textContent = 'Obteniendo...';
+                coordsDisplay.classList.remove('hidden');
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+                        plotCard.dataset.coords = `${latitude},${longitude}`;
+                        coordsDisplay.textContent = `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`;
+                        saveSession();
+                    },
+                    (error) => { 
+                        let errorMsg = 'Error al obtener ubicación.';
+                        if (error.code === 1) errorMsg = 'Permiso de ubicación denegado.';
+                        if (error.code === 2) errorMsg = 'Ubicación no disponible.';
+                        coordsDisplay.textContent = errorMsg;
+                     },
+                    { enableHighAccuracy: true }
+                );
+            }
+        });
+        
+        appContainer.addEventListener('input', (e) => {
+            if (e.target.matches('input, select')) {
+                calculateAndDisplay();
+            }
+        });
+
+        // --- NAVIGATION SENSORS ---
+        function initializeMap(initialPosition) {
+            if (map) return;
+            const { latitude, longitude, accuracy } = initialPosition.coords;
+            map = L.map('map').setView([latitude, longitude], 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            userMarker = L.marker([latitude, longitude]).addTo(map);
+            accuracyCircle = L.circle([latitude, longitude], {
+                radius: accuracy,
+                color: '#1d4ed8',
+                fillColor: '#3b82f6',
+                fillOpacity: 0.15,
+                weight: 2
+            }).addTo(map);
+        }
+
+        function handleOrientation(event) {
+            const alpha = event.webkitCompassHeading || event.alpha;
+            if (alpha === null) return;
+
+            compassRose.style.transform = `rotate(${-alpha}deg)`;
+            azimuthDisplay.textContent = `${Math.round(alpha)}°`;
+            directionDisplay.textContent = degToCardinal(alpha);
+        }
+
+        function handlePosition(position) {
+            const { latitude, longitude, accuracy } = position.coords;
+            latitudeDisplay.textContent = latitude.toFixed(6);
+            longitudeDisplay.textContent = longitude.toFixed(6);
+            accuracyDisplay.textContent = `± ${accuracy.toFixed(1)} m`;
+
+            if (map && userMarker && accuracyCircle) {
+                const latLng = [latitude, longitude];
+                map.panTo(latLng);
+                userMarker.setLatLng(latLng);
+                accuracyCircle.setLatLng(latLng);
+                accuracyCircle.setRadius(accuracy);
+            }
+        }
+        
+        function handlePositionError(error) {
+            let message = 'Error de GPS. ';
+            if (error.code === 1) message = 'Permiso de ubicación denegado.';
+            if (error.code === 2) message = 'Ubicación no disponible.';
+            sensorsError.textContent = message;
+        }
+
+        function startNavigationSensors() {
+            sensorsError.textContent = '';
+            
+            // GPS logic must come first to trigger location prompt
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    // On success, initialize map and start watching
+                    initializeMap(position);
+                    handlePosition(position);
+                    gpsWatchId = navigator.geolocation.watchPosition(handlePosition, handlePositionError, { enableHighAccuracy: true });
+
+                    // Now, ask for orientation permission
+                    if (typeof window.DeviceOrientationEvent !== 'undefined' && typeof window.DeviceOrientationEvent.requestPermission === 'function') {
+                        window.DeviceOrientationEvent.requestPermission()
+                            .then(permissionState => {
+                                if (permissionState === 'granted') {
+                                    window.addEventListener('deviceorientation', handleOrientation);
+                                } else {
+                                    sensorsError.textContent = 'Permiso para brújula denegado. ';
+                                }
+                            }).catch(console.error);
+                    } else if ('DeviceOrientationEvent' in window) {
+                        window.addEventListener('deviceorientation', handleOrientation);
+                    } else {
+                        sensorsError.textContent += 'Brújula no soportada. ';
+                    }
+
+                }, handlePositionError, { enableHighAccuracy: true });
+            } else {
+                 sensorsError.textContent += 'GPS no soportado.';
+            }
+
+            sensorsContent.classList.remove('hidden');
+            activateSensorsContainer.classList.add('hidden');
+        }
+
+        function stopNavigationSensors() {
+            window.removeEventListener('deviceorientation', handleOrientation);
+            if (gpsWatchId !== null) {
+                navigator.geolocation.clearWatch(gpsWatchId);
+                gpsWatchId = null;
+            }
+        }
+
+        function degToCardinal(deg) {
+            const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO'];
+            const index = Math.round(deg / 22.5) % 16;
+            return directions[index];
+        }
+
+        activateSensorsBtn.addEventListener('click', startNavigationSensors);
+        
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Force hide all content panels on load to prevent flash of unstyled content
+            document.querySelectorAll('#calculator-content > div').forEach(el => el.classList.add('hidden'));
+            
+            createPlotEntry();
+            createRumaHeightEntry();
+            createRumaLogEntry();
+            handleTabChange(); // This will show the correct default panel
+            applyInitialTheme();
+            const savedSession = localStorage.getItem('cubiforLastSession');
+            if (savedSession) {
+                toggleModal(restoreModal, true);
+            } else {
+                calculateAndDisplay();
+            }
+        });
+    </script>
+</body>
+</html>
