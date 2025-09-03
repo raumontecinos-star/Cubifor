@@ -735,22 +735,14 @@
             let hasLiDAR = false;
             let hasBasicAR = false;
             
-            if ('xr' in navigator) {
-                try {
-                    // Check for LiDAR (depth-sensing) support
-                    hasLiDAR = await navigator.xr.isSessionSupported('immersive-ar', {
-                        requiredFeatures: ['depth-sensing']
-                    });
-                } catch (error) {
-                    console.warn('LiDAR AR not supported. Falling back to basic AR.', error);
-                }
-
-                if (!hasLiDAR) {
-                    try {
-                         // Check for basic AR support
-                        hasBasicAR = await navigator.xr.isSessionSupported('immersive-ar');
-                    } catch (error) {
-                        console.warn('Basic AR not supported.', error);
+            if ('xr' in navigator && navigator.xr.isSessionSupported) {
+                 hasBasicAR = await navigator.xr.isSessionSupported('immersive-ar');
+                if(hasBasicAR){
+                     try {
+                        hasLiDAR = await navigator.xr.isSessionSupported('immersive-ar', { requiredFeatures: ['depth-sensing'] });
+                    } catch (e) {
+                        console.warn("Depth sensing not supported", e);
+                        hasLiDAR = false;
                     }
                 }
             }
@@ -758,8 +750,6 @@
         }
         
         function startLiDARMeasurement() {
-            // This function would contain the actual WebXR code using a library like Three.js
-            // to start a depth-sensing session for high-precision measurement.
             arStatusTitle.textContent = "Medición LiDAR de Alta Precisión";
             arInstructions.textContent = "Apunte al árbol. El sistema escaneará su forma automáticamente. (Simulación)";
             
@@ -782,7 +772,6 @@
         }
 
         function startARMeasurement() {
-            // This function would contain the WebXR code for trigonometric measurement.
             arStatusTitle.textContent = "Medición con AR Estándar";
             arInstructions.textContent = "Por favor, ingrese la distancia a la que se encuentra del árbol y luego apunte a la base. (Simulación)";
             
@@ -806,34 +795,49 @@
 
         measureTreeBtn.addEventListener('click', async () => {
             arStatusTitle.textContent = "Iniciando Medición";
-            arInstructions.textContent = "Verificando capacidades del dispositivo...";
+            arInstructions.textContent = "Solicitando permiso para la cámara y sensores...";
             toggleModal(arMeasurementModal, true);
 
-            const capabilities = await checkARCapabilities();
+            if (!navigator.xr) {
+                arInstructions.innerHTML = "<b>Realidad Aumentada no soportada.</b><br>Tu navegador no es compatible con WebXR.";
+                setTimeout(() => toggleModal(arMeasurementModal, false), 5000);
+                return;
+            }
 
-            setTimeout(() => { // Small delay for user to read the message
+            try {
+                const isARSupported = await navigator.xr.isSessionSupported('immersive-ar');
+                if (!isARSupported) {
+                    throw new Error("AR not supported on this device.");
+                }
+
+                // Request a session to trigger the permission prompt.
+                // It will be ended immediately as we only need the permission grant.
+                const session = await navigator.xr.requestSession('immersive-ar');
+                await session.end();
+
+                // Now that permission has been granted, check for advanced features.
+                const capabilities = await checkARCapabilities();
                 if (capabilities.hasLiDAR) {
                     startLiDARMeasurement();
-                } else if (capabilities.hasBasicAR) {
-                    startARMeasurement();
                 } else {
-                    const os = getOS();
-                    let instructionHTML = "<b>Dispositivo no compatible o permisos denegados.</b><br>La Realidad Aumentada requiere acceso a los sensores de movimiento.<br>";
-                    if (os === 'iOS') {
-                        instructionHTML += "<b>En iOS:</b> Ve a Configuración > Safari y activa 'Acceso a Movimiento y Orientación'.";
-                    } else if (os === 'Android') {
-                        instructionHTML += "<b>En Android:</b> Revisa los permisos del sitio en la configuración de tu navegador y activa 'Sensores de movimiento'.";
-                    } else {
-                        instructionHTML += "Por favor, activa el acceso a los sensores de movimiento en la configuración de tu navegador.";
-                    }
-                    arInstructions.innerHTML = instructionHTML;
-                    setTimeout(() => toggleModal(arMeasurementModal, false), 7000);
+                    startARMeasurement();
                 }
-            }, 1500);
+
+            } catch (error) {
+                console.error("AR session request failed:", error);
+                const os = getOS();
+                let instructionHTML = "<b>Permiso denegado o dispositivo no compatible.</b><br>La Realidad Aumentada requiere acceso a la cámara y sensores de movimiento.<br>";
+                if (os === 'iOS') {
+                    instructionHTML += "<b>Solución:</b> Revisa los permisos de Cámara y Movimiento para este sitio en la configuración de Safari.";
+                } else if (os === 'Android') {
+                    instructionHTML += "<b>Solución:</b> Revisa los permisos de Cámara y Sensores para este sitio en la configuración de tu navegador.";
+                }
+                arInstructions.innerHTML = instructionHTML;
+                setTimeout(() => toggleModal(arMeasurementModal, false), 7000);
+            }
         });
-        
+
         arCancelBtn.addEventListener('click', () => {
-            // In a real app, you would also need to end the WebXR session here.
             toggleModal(arMeasurementModal, false);
         });
         /* --- FIN: SUB-SECCIÓN: MEDICIÓN CON REALIDAD AUMENTADA (AR) --- */
