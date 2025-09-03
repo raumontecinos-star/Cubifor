@@ -2461,89 +2461,89 @@
                 AppState.accuracyCircle.setRadius(accuracy);
             }
         }
-        
+
         function handlePositionError(error) {
-            let message = 'Error de GPS. ';
+            let message = '<b>Error de GPS:</b> ';
             if (error.code === 1) { // PERMISSION_DENIED
-                message = 'Permiso de ubicación denegado. La función de mapa no se puede utilizar.';
+                message += 'Permiso de ubicación denegado.';
             } else if (error.code === 2) {
-                message = 'Ubicación no disponible.';
+                message += 'Ubicación no disponible en este momento.';
             } else if (error.code === 3) {
-                message = 'Tiempo de espera agotado.';
+                message += 'Tiempo de espera agotado al solicitar la ubicación.';
+            } else {
+                message += 'No se pudo obtener la ubicación.';
             }
-            sensorsError.textContent = message;
+            sensorsError.innerHTML += `<p>${message}</p>`;
         }
 
-        async function activateSensorsAndMap() {
-            sensorsError.textContent = 'Solicitando permisos...';
+        async function activateCompass() {
             try {
+                // Paso 1: Intentar obtener permiso de orientación
+                if (typeof window.DeviceOrientationEvent.requestPermission === 'function') {
+                    const permissionState = await window.DeviceOrientationEvent.requestPermission();
+                    if (permissionState !== 'granted') {
+                        throw new Error('Permission not granted');
+                    }
+                }
+                
+                // Si llegamos aquí, tenemos permiso (o no se requería explícitamente)
+                if ('DeviceOrientationEvent' in window) {
+                    window.addEventListener('deviceorientation', handleOrientation);
+                    azimuthDisplay.textContent = '...'; // Indicar que está activando
+                    directionDisplay.textContent = 'Calibrando...';
+                } else {
+                     throw new Error('DeviceOrientation not supported');
+                }
+
+            } catch (err) {
+                console.warn("Compass activation failed:", err);
+                azimuthDisplay.textContent = "N/A";
+                directionDisplay.textContent = "No disponible";
+                
+                const os = getOS();
+                let helpMessage = 'Permiso para brújula denegado.';
+                if (os === 'iOS') {
+                    helpMessage += '<br><b>Solución:</b> Revisa los permisos para este sitio en la configuración de Safari.';
+                } else if (os === 'Android') {
+                    helpMessage += '<br><b>Solución:</b> Revisa los permisos del sitio en tu navegador y activa "Sensores de movimiento".';
+                }
+                sensorsError.innerHTML += `<p>${helpMessage}</p>`;
+            }
+        }
+        
+        async function activateGpsMap() {
+            try {
+                // Carga de Scripts del Mapa
                 if (typeof L === 'undefined') {
-                    sensorsError.textContent = 'Cargando mapa...';
                     await loadCss('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
                     await loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
                 }
-            } catch (error) {
-                console.error('Failed to load Leaflet libraries:', error);
-                sensorsError.textContent = 'Error al cargar el mapa. Revisa tu conexión.';
-                return;
+
+                // Permiso de Ubicación
+                const position = await requestGpsPermission();
+
+                // Iniciar mapa y seguimiento
+                document.getElementById('map').classList.remove('hidden');
+                initializeMap(position);
+                handlePosition(position);
+                AppState.gpsWatchId = navigator.geolocation.watchPosition(handlePosition, handlePositionError, { enableHighAccuracy: true });
+
+            } catch (err) {
+                 console.error("GPS Map activation failed:", err);
+                 document.getElementById('map').classList.add('hidden'); // Ocultar el mapa si falla
+                 handlePositionError(err); // Muestra el error de GPS en la UI
             }
+        }
 
-            let orientationGranted = false;
-            let orientationPermissionDenied = false;
-
-            if (typeof window.DeviceOrientationEvent !== 'undefined' && typeof window.DeviceOrientationEvent.requestPermission === 'function') {
-                try {
-                    const permissionState = await window.DeviceOrientationEvent.requestPermission();
-                    if (permissionState === 'granted') {
-                        window.addEventListener('deviceorientation', handleOrientation);
-                        orientationGranted = true;
-                    } else {
-                        orientationPermissionDenied = true;
-                    }
-                } catch (error) {
-                    console.warn("Error al solicitar permiso de orientación:", error);
-                    orientationPermissionDenied = true;
-                }
-            } else if ('DeviceOrientationEvent' in window) {
-                window.addEventListener('deviceorientation', handleOrientation);
-                orientationGranted = true;
-            }
-
-            if (!("geolocation" in navigator)) {
-                sensorsError.textContent = 'GPS no es soportado en este navegador.';
-                return;
-            }
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    sensorsError.textContent = '';
-                    sensorsContent.classList.remove('hidden');
-                    activateSensorsContainer.classList.add('hidden');
-
-                    initializeMap(position);
-                    handlePosition(position);
-                    AppState.gpsWatchId = navigator.geolocation.watchPosition(handlePosition, handlePositionError, { enableHighAccuracy: true });
-
-                    if (!orientationGranted) {
-                        azimuthDisplay.textContent = "N/A";
-                        directionDisplay.textContent = "No disponible";
-                        if (orientationPermissionDenied) {
-                            const os = getOS();
-                            if (os === 'iOS') {
-                                sensorsError.innerHTML = 'Permiso para brújula denegado.<br><b>En iOS:</b> Ve a Configuración > Safari y activa "Acceso a Movimiento y Orientación".';
-                            } else if (os === 'Android') {
-                                sensorsError.innerHTML = 'Permiso para brújula denegado.<br><b>En Android:</b> Revisa los permisos del sitio en la configuración de tu navegador y activa "Sensores de movimiento".';
-                            } else {
-                                sensorsError.textContent = 'Permiso para sensores de movimiento denegado. Revisa la configuración de tu navegador.';
-                            }
-                        }
-                    }
-                },
-                (error) => {
-                    handlePositionError(error);
-                },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-            );
+        async function activateSensorsAndMap() {
+            // Oculta el botón y muestra el panel de sensores inmediatamente
+            sensorsError.innerHTML = ''; // Limpiar errores previos
+            sensorsContent.classList.remove('hidden');
+            activateSensorsContainer.classList.add('hidden');
+            
+            // Llama a ambas funciones de forma SECUENCIAL para evitar conflictos
+            await activateCompass();
+            await activateGpsMap();
         }
         
         function requestGpsPermission() {
