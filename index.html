@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CubiFor - Cubicador Forestal</title>
-    <meta name="theme-color" content="#1e293b"/>
+    <meta name="theme-color" content="#1e2d3b"/>
     <!-- Enlace al manifest estático -->
     <link rel="manifest" href="manifest.json">
     
@@ -642,6 +642,17 @@
 
 
         /* --- SUB-SECCIÓN: FUNCIONES UTILITARIAS (MODALES, TEMA, CARGA DE SCRIPTS) --- */
+        function getOS() {
+            const ua = navigator.userAgent;
+            if (/android/i.test(ua)) {
+                return "Android";
+            }
+            if (/iPad|iPhone|iPod/.test(ua)) {
+                return "iOS";
+            }
+            return "Other";
+        }
+        
         function loadScript(src) {
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
@@ -806,8 +817,17 @@
                 } else if (capabilities.hasBasicAR) {
                     startARMeasurement();
                 } else {
-                    arInstructions.textContent = "Su dispositivo no es compatible con Realidad Aumentada para esta función. Por favor, ingrese los datos manualmente.";
-                    setTimeout(() => toggleModal(arMeasurementModal, false), 4000);
+                    const os = getOS();
+                    let instructionHTML = "<b>Dispositivo no compatible o permisos denegados.</b><br>La Realidad Aumentada requiere acceso a los sensores de movimiento.<br>";
+                    if (os === 'iOS') {
+                        instructionHTML += "<b>En iOS:</b> Ve a Configuración > Safari y activa 'Acceso a Movimiento y Orientación'.";
+                    } else if (os === 'Android') {
+                        instructionHTML += "<b>En Android:</b> Revisa los permisos del sitio en la configuración de tu navegador y activa 'Sensores de movimiento'.";
+                    } else {
+                        instructionHTML += "Por favor, activa el acceso a los sensores de movimiento en la configuración de tu navegador.";
+                    }
+                    arInstructions.innerHTML = instructionHTML;
+                    setTimeout(() => toggleModal(arMeasurementModal, false), 7000);
                 }
             }, 1500);
         });
@@ -2152,7 +2172,7 @@
                 const entry = removeBtn.parentElement;
                 const container = entry.parentElement;
                 entry.remove();
-                container.querySelectorAll('.font-mono').forEach((span, index) => { span.textContent = `${index + 1}.`; });
+                container.querySelectorAll('span.w-6').forEach((span, index) => { span.textContent = `${index + 1}.`; });
             }
             const removePlotBtn = e.target.closest('.remove-plot-btn');
             if (removePlotBtn) { 
@@ -2469,6 +2489,7 @@
             }
 
             let orientationGranted = false;
+            let orientationPermissionDenied = false;
 
             if (typeof window.DeviceOrientationEvent !== 'undefined' && typeof window.DeviceOrientationEvent.requestPermission === 'function') {
                 try {
@@ -2477,10 +2498,11 @@
                         window.addEventListener('deviceorientation', handleOrientation);
                         orientationGranted = true;
                     } else {
-                        sensorsError.textContent = 'Permiso para brújula denegado.';
+                        orientationPermissionDenied = true;
                     }
                 } catch (error) {
                     console.warn("Error al solicitar permiso de orientación:", error);
+                    orientationPermissionDenied = true;
                 }
             } else if ('DeviceOrientationEvent' in window) {
                 window.addEventListener('deviceorientation', handleOrientation);
@@ -2505,6 +2527,16 @@
                     if (!orientationGranted) {
                         azimuthDisplay.textContent = "N/A";
                         directionDisplay.textContent = "No disponible";
+                        if (orientationPermissionDenied) {
+                            const os = getOS();
+                            if (os === 'iOS') {
+                                sensorsError.innerHTML = 'Permiso para brújula denegado.<br><b>En iOS:</b> Ve a Configuración > Safari y activa "Acceso a Movimiento y Orientación".';
+                            } else if (os === 'Android') {
+                                sensorsError.innerHTML = 'Permiso para brújula denegado.<br><b>En Android:</b> Revisa los permisos del sitio en la configuración de tu navegador y activa "Sensores de movimiento".';
+                            } else {
+                                sensorsError.textContent = 'Permiso para sensores de movimiento denegado. Revisa la configuración de tu navegador.';
+                            }
+                        }
                     }
                 },
                 (error) => {
@@ -2554,5 +2586,4 @@
     </script>
 </body>
 </html>
-
 
