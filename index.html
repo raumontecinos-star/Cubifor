@@ -1433,7 +1433,8 @@
                     if (activeTab === 'tab-nav') {
                         resultContainer.classList.add('hidden');
                         if (AppState.map) {
-                            setTimeout(() => AppState.map.invalidateSize(), 10);
+                            // This is the robust fix for the map rendering issue.
+                            setTimeout(() => AppState.map.invalidateSize(true), 10);
                         }
                     } else {
                         SensorManager.stopNavigationSensors();
@@ -2173,7 +2174,8 @@
 
                     const handleDevicePitch = (event) => {
                         if (event.beta !== null) {
-                            measurementState.currentPitch = 90 - event.beta;
+                            // Corrected angle calculation: up is positive, down is negative.
+                            measurementState.currentPitch = event.beta - 90;
                             liveAngleDisplay.textContent = `${measurementState.currentPitch.toFixed(1)}°`;
                         }
                     };
