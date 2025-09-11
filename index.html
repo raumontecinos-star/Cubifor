@@ -391,7 +391,7 @@
                 <div id="activate-sensors-container">
                     <button id="activate-sensors-btn" class="w-full bg-sky-800/80 hover:bg-sky-800 font-semibold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center space-x-2 border border-sky-600">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        <span>Activar Sensores y Mapa</span>
+                        <span>Cargar Mapa y Activar Sensores</span>
                     </button>
                     <p id="sensors-error" class="text-center text-red-400 mt-4 text-sm"></p>
                 </div>
@@ -884,6 +884,7 @@
             const RUMA_FACTOR = 0.65;
             const ASSUMED_CAMERA_FOV = 60; // Horizontal Field of View in degrees
             const COMPASS_SMOOTHING_SAMPLES = 10;
+            const QUIRIHUE_COORDS = [-36.278, -72.535]; // Coordenadas para Quirihue, Ñuble
             /* --- END: SUB-SECTION: GLOBAL STATE & CONSTANTS --- */
             
             /* --- SUB-SECTION: DOM ELEMENTS --- */
@@ -1432,10 +1433,7 @@
 
                     if (activeTab === 'tab-nav') {
                         resultContainer.classList.add('hidden');
-                        if (AppState.map) {
-                            // This is the robust fix for the map rendering issue.
-                            setTimeout(() => AppState.map.invalidateSize(true), 10);
-                        }
+                        SensorManager.showAndInitializeMap(); // Reemplaza la lógica anterior
                     } else {
                         SensorManager.stopNavigationSensors();
                         calculateAndDisplay();
@@ -1944,30 +1942,27 @@
             const SensorManager = {
                 // --- SUB-SECTION: NAVIGATION (GPS & COMPASS) ---
                 initializeMap(initialPosition, popupMessage = 'Tu ubicación') {
-                    if (AppState.map) {
-                        AppState.map.setView([initialPosition.coords.latitude, initialPosition.coords.longitude], 16);
-                        return;
-                    }
+                    // Esta función ahora solo añade o actualiza la ubicación del usuario, no crea el mapa.
+                    if (!AppState.map) return;
+
                     const { latitude, longitude, accuracy } = initialPosition.coords;
-                    AppState.map = L.map('map').setView([latitude, longitude], 16);
-                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                        attribution: 'Tiles &copy; Esri'
-                    }).addTo(AppState.map);
+                    const latLng = [latitude, longitude];
 
-                    AppState.userMarker = L.marker([latitude, longitude]).addTo(AppState.map)
-                        .bindPopup(popupMessage)
-                        .openPopup();
+                    if (!AppState.userMarker) {
+                         AppState.userMarker = L.marker(latLng).addTo(AppState.map)
+                            .bindPopup(popupMessage)
+                            .openPopup();
                         
-                    AppState.accuracyCircle = L.circle([latitude, longitude], {
-                        radius: accuracy, color: '#1d4ed8', fillColor: '#3b82f6',
-                        fillOpacity: 0.15, weight: 2
-                    }).addTo(AppState.map);
-                    
-                    this.initializeDrawingTools();
-
-                    requestAnimationFrame(() => {
-                        AppState.map.invalidateSize(true);
-                    });
+                        AppState.accuracyCircle = L.circle(latLng, {
+                            radius: accuracy, color: '#1d4ed8', fillColor: '#3b82f6',
+                            fillOpacity: 0.15, weight: 2
+                        }).addTo(AppState.map);
+                        AppState.map.setView(latLng, 16); // Centrar en el usuario la primera vez
+                    } else {
+                        AppState.userMarker.setLatLng(latLng);
+                        AppState.accuracyCircle.setLatLng(latLng);
+                        AppState.accuracyCircle.setRadius(accuracy);
+                    }
                 },
 
                 initializeDrawingTools() {
@@ -2044,7 +2039,49 @@
 
                     const avgX = sumX / AppState.compassHistory.length;
                     const avgY = sumY / AppState.compassHistory.length;
-                    const accuracy = position.coords;
+                    
+                    const avgAngleRad = Math.atan2(avgY, avgX);
+                    let avgAngleDeg = avgAngleRad * (180 / Math.PI);
+                    if (avgAngleDeg < 0) {
+                        avgAngleDeg += 360;
+                    }
+
+                    return avgAngleDeg;
+                },
+
+                handleOrientation(event) {
+                    // Check for AbsoluteOrientationSensor for modern, reliable data
+                    if (window.AbsoluteOrientationSensor) {
+                        // This part would be implemented if the sensor API is available and preferred.
+                        // For now, we stick to the widely supported deviceorientation event.
+                    }
+
+                    let heading = null;
+                    if (event.webkitCompassHeading) { // iOS
+                        heading = event.webkitCompassHeading;
+                    } else if (event.alpha !== null) { // Android & others
+                        // 'alpha' is the direction of the device in degrees from 0 to 360.
+                        // We adjust for the device's screen orientation.
+                        const screenAngle = window.orientation || 0;
+                        heading = 360 - event.alpha - screenAngle;
+                    }
+                    
+                    if (heading !== null) {
+                        if (heading < 0) heading += 360;
+                        if (heading >= 360) heading -= 360;
+
+                        const magneticHeading = this.getSmoothedHeading(heading);
+                        const trueHeading = (magneticHeading + AppState.magneticDeclination + 360) % 360;
+
+                        compassRose.style.transform = `rotate(${-trueHeading}deg)`;
+                        azimuthDisplay.textContent = `${trueHeading.toFixed(0)}°`;
+                        directionDisplay.textContent = this.degToCardinal(trueHeading);
+                    }
+                },
+                
+                handlePosition(position) {
+                    AppState.lastKnownPosition = { position, timestamp: Date.now() };
+                    const { latitude, longitude, accuracy } = position.coords;
                     latitudeDisplay.textContent = latitude.toFixed(6);
                     longitudeDisplay.textContent = longitude.toFixed(6);
                     accuracyDisplay.textContent = `± ${accuracy.toFixed(1)} m`;
@@ -2052,13 +2089,8 @@
                     if (typeof geomag !== 'undefined') {
                         AppState.magneticDeclination = geomag.field(latitude, longitude).decl;
                     }
-
-                    if (AppState.map && AppState.userMarker && AppState.accuracyCircle) {
-                        const latLng = [latitude, longitude];
-                        AppState.userMarker.setLatLng(latLng);
-                        AppState.accuracyCircle.setLatLng(latLng);
-                        AppState.accuracyCircle.setRadius(accuracy);
-                    }
+                    // La actualización del marcador ahora se centraliza en initializeMap
+                    this.initializeMap(position);
                 },
 
                 handlePositionError(error) {
@@ -2092,37 +2124,19 @@
                 },
 
                 async activateSensorsAndMap() {
+                    // Esta función ahora solo activa los sensores, el mapa ya existe.
                     sensorsError.innerHTML = '';
                     
                     try {
-                        // STEP 1: Request permissions immediately.
                         const [position, _] = await Promise.all([
                             this.requestGpsPermission(),
                             this.requestOrientationPermission()
                         ]);
                         
-                        // If permissions are granted, show the content area.
-                        sensorsContent.classList.remove('hidden');
-                        activateSensorsContainer.classList.add('hidden');
-
-                        // STEP 2: Load scripts AFTER permissions are granted.
-                        await Promise.all([
-                            UIManager.loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'),
-                            UIManager.loadScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js'),
-                            UIManager.loadScript('https://npmcdn.com/@turf/turf/turf.min.js'),
-                            UIManager.loadScript('https://cdn.jsdelivr.net/npm/geomag@0.3.1/geomag.min.js')
-                        ]);
-                        
-                        // STEP 3: Initialize map and sensors.
-                        document.getElementById('map').classList.remove('hidden');
-                        drawingToolsContainer.classList.remove('hidden');
-                        this.initializeMap(position);
-                        
-                        // Set initial position & start watching for changes
+                        // Si los permisos se conceden, simplemente inicia el seguimiento.
                         this.handlePosition(position);
                         AppState.gpsWatchId = navigator.geolocation.watchPosition(this.handlePosition.bind(this), this.handlePositionError.bind(this), { enableHighAccuracy: true });
                         
-                        // Start listening for orientation changes
                         if ('DeviceOrientationEvent' in window) {
                             window.addEventListener('deviceorientation', this.handleOrientation.bind(this));
                             azimuthDisplay.textContent = '...';
@@ -2131,24 +2145,77 @@
                             azimuthDisplay.textContent = "N/A";
                             directionDisplay.textContent = "No soportado";
                         }
+                        
+                        // Ocultar el botón después de activar los sensores
+                         const findMeButton = document.querySelector('.find-me-control');
+                        if(findMeButton) findMeButton.style.display = 'none';
 
                     } catch (err) {
-                        // This will catch both permission denials and script loading errors.
                         console.error("Sensor activation failed:", err);
-                        sensorsContent.classList.remove('hidden');
-                        activateSensorsContainer.classList.add('hidden');
-                        
                         let message = '';
                         if (err && err.message.toLowerCase().includes('denied')) {
-                             message = '<b>Permisos denegados.</b> Revisa los ajustes de privacidad de tu navegador/dispositivo para permitir el acceso a la ubicación y al movimiento.';
+                             message = '<b>Permisos denegados.</b> Revisa los ajustes de privacidad para permitir acceso a la ubicación y movimiento.';
                         } else if (err && err.message.includes('orientación denegado')) {
-                            message = '<b>Permiso de movimiento denegado.</b> En iOS, puedes activarlo en Ajustes > Safari > Movimiento y Orientación.';
-                        }
-                        else {
-                            message = 'No se pudieron activar los sensores. Por favor, asegúrate de tener buena señal y de haber otorgado los permisos necesarios.';
+                            message = '<b>Permiso de movimiento denegado.</b> En iOS, actívalo en Ajustes > Safari > Movimiento y Orientación.';
+                        } else {
+                            message = 'No se pudieron activar los sensores. Asegúrate de tener buena señal y permisos otorgados.';
                         }
                         sensorsError.innerHTML = `<p>${message}</p>`;
                     }
+                },
+                
+                async showAndInitializeMap() {
+                    // Función central para mostrar e inicializar el mapa una sola vez.
+                    if (AppState.map) {
+                        // Si ya existe, solo asegúrate de que el tamaño sea correcto
+                        setTimeout(() => AppState.map.invalidateSize(), 10);
+                        return;
+                    }
+                    
+                    sensorsContent.classList.remove('hidden');
+                    activateSensorsContainer.classList.add('hidden');
+                    drawingToolsContainer.classList.remove('hidden');
+
+                    try {
+                        await Promise.all([
+                            UIManager.loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'),
+                            UIManager.loadScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js'),
+                            UIManager.loadScript('https://npmcdn.com/@turf/turf/turf.min.js'),
+                            UIManager.loadScript('https://cdn.jsdelivr.net/npm/geomag@0.3.1/geomag.min.js')
+                        ]);
+
+                        AppState.map = L.map('map').setView(QUIRIHUE_COORDS, 12);
+                        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                            attribution: 'Tiles &copy; Esri'
+                        }).addTo(AppState.map);
+
+                        this.initializeDrawingTools();
+                        this.addCustomMapControls();
+
+                        requestAnimationFrame(() => AppState.map.invalidateSize(true));
+                    } catch (err) {
+                        console.error("Map initialization failed:", err);
+                        sensorsError.innerHTML = `<p>No se pudo cargar el mapa. Revisa tu conexión a internet.</p>`;
+                        sensorsContent.classList.add('hidden');
+                        activateSensorsContainer.classList.remove('hidden');
+                    }
+                },
+                
+                addCustomMapControls() {
+                    const findMeControl = L.Control.extend({
+                        options: { position: 'topleft' },
+                        onAdd: (map) => {
+                            const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom find-me-control');
+                            container.innerHTML = `<a href="#" title="Mostrar mi ubicación"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" /></svg></a>`;
+                            container.onclick = (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                this.activateSensorsAndMap();
+                            };
+                            return container;
+                        }
+                    });
+                    AppState.map.addControl(new findMeControl());
                 },
 
                 async startCameraMeasurement(distance) {
@@ -2174,8 +2241,7 @@
 
                     const handleDevicePitch = (event) => {
                         if (event.beta !== null) {
-                            // Corrected angle calculation: up is positive, down is negative.
-                            measurementState.currentPitch = event.beta - 90;
+                            measurementState.currentPitch = 90 - event.beta;
                             liveAngleDisplay.textContent = `${measurementState.currentPitch.toFixed(1)}°`;
                         }
                     };
@@ -2485,7 +2551,7 @@
                      UIManager.toggleModal(measurementHelpModal, false);
                 });
 
-                activateSensorsBtn.addEventListener('click', () => SensorManager.activateSensorsAndMap());
+                activateSensorsBtn.addEventListener('click', () => SensorManager.showAndInitializeMap());
                 mapExpandBtn.addEventListener('click', () => {
                     mapContainer.classList.add('fullscreen');
                     document.body.classList.add('map-fullscreen-active');
